@@ -41,15 +41,18 @@ def etl():
 
     status = ""
     tbs = []
+    # tbs = {}
 
     try:
         for i in fns.items():
             try:
                 df = pd.read_csv(i[1])
                 df.to_sql(i[0], con=engine, if_exists="replace", index=False)
-                tbs.append(i[0] + "_success")
+                tbs.append(i[0] + "_success")  # for a list
+                # tbs['success'] = i[0] # for dictionary
             except Exception:
-                tbs.append(i[0] + "_fail")
+                tbs.append(i[0] + "_fail")  # for a list
+                # tbs["fail"] = i[0] # for dictionary
                 continue
         status = "success"
     except Exception:
