@@ -1,7 +1,7 @@
 import pandas as pd
 from sqlalchemy import create_engine, text
 from pathlib import Path
-import os, time, platform
+import os, time, platform, json
 from datetime import datetime
 import pyodbc as db
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -47,7 +47,7 @@ def etl():
             try:
                 df = pd.read_csv(i[1])
                 df.to_sql(i[0], con=engine, if_exists="replace", index=False)
-                tbs.append(i[1] + "_success")
+                tbs.append(i[0] + "_success")
             except Exception:
                 tbs.append(i[0] + "_fail")
                 continue
@@ -57,16 +57,14 @@ def etl():
 
     end_time = time.time()
     duration_seconds = end_time - start_time
-
     print("Connection and deploying to SQL Server ended.\n")
 
-    print(tbs)
-
     # logging to keep track transactions
+    tbs_json = json.dumps(tbs)
     print("Gathering data for logs.")
     insert_statement = text(
         f"INSERT INTO logs (host_name, status, tables, duration_seconds, start_date, end_date) "
-        f"VALUES ('{platform.node()}', '{status}', '{tbs}', {duration_seconds}, '{start_date.strftime('%Y-%m-%d %H:%M:%S')}', '{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
+        f"VALUES ('{platform.node()}', '{status}', '{tbs_json}', {duration_seconds}, '{start_date.strftime('%Y-%m-%d %H:%M:%S')}', '{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
     )
 
     # Insert data into the logs table
