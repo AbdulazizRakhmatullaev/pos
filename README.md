@@ -9,13 +9,13 @@ ABOUT:
 - Implemented a comprehensive error-handling strategy to address potential issues during the ETL process.
 
 WHAT TO CHANGE IN THE CODE:
-- in line 11 it should get the folder path, you should set this variable 
+- 1. You need folder path, set the variable "folder_path" 
 - - for Mac/Linux
   - export folder_path="you whole folder path where are files stored"
 - - For Windows
   - set folder_path="you whole folder path where are files stored"
 
-- in line 35 it should get the database connection string to create engine, you should set this variable too
+- 2. You need connection string, set the variable "database_url"
 - - For Mac/Linux
   - export database_url="mssql+pyodbc://<username>:<password>@<server-name>/<database-name>?driver=ODBC+Driver+17+for+SQL+Server"
 - - For Windows (I don't use windows so I don't know what connection they use, just replace with the right one)
