@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, text
 from pathlib import Path
 import os, time, platform, json
 from datetime import datetime
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 def etl():
@@ -110,11 +111,11 @@ def etl():
 etl()
 
 # - Run daily
-# scheduler = BlockingScheduler()
-# scheduler.add_job(etl, "cron", hour=5, minute=0)  # 5:00 AM
+scheduler = BlockingScheduler()
+scheduler.add_job(etl, "cron", hour=5, minute=0)  # 5:00 AM
 
-# try:
-#     print("Daily ETL execution started, waiting...\n")
-#     scheduler.start()
-# except KeyboardInterrupt:
-#     print("Daily ETL execution stopped.")
+try:
+    print("Daily ETL execution started, waiting...\n")
+    scheduler.start()
+except KeyboardInterrupt:
+    print("Daily ETL execution stopped.")
