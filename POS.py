@@ -5,6 +5,125 @@ import os, time, platform, json
 from datetime import datetime
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+folder_env_str = os.environ.get("folder_path")
+database_url_env = os.environ.get("database_url")
+
+
+def read_files():
+    folder_path = Path(folder_env_str)
+    files = folder_path.iterdir()
+    fns = {}
+    src_cnt = 0
+
+    try:
+        first_file = next(files)
+    except StopIteration:
+        print("No files in the folder")
+    else:
+        print("- Iterating through files")
+
+        files = [first_file] + list(files)
+
+        for paths in files:
+            directory, file_full_name = os.path.split(paths)
+            file_name, extension = file_full_name.rsplit(".", -1)
+            src_cnt += 1
+
+            if any(char.isdigit() for char in file_name):
+                # If file_name contains numbers, it replaces it with only alphabetic characters (customer_20231221 for example)
+                only_str = "".join(char for char in file_name if char.isalpha())
+                fns[only_str] = f"{directory}/{file_name}.{extension}"
+            else:
+                fns[file_name] = f"{directory}/{file_name}.{extension}"
+
+        print("[read_files] Procces ended -\n")
+
+    return fns, src_cnt
+
+
+def for_sql():
+    engine = create_engine(database_url_env)
+    fns, src_cnt = read_files()
+    tbs = []
+    tbs_cnt = 0
+    
+    print("- Connection and getting data for Prem SQL Server")
+
+    start_date = datetime.now()
+    start_time = time.time()
+
+    for i in fns.items():
+        try:
+            df = pd.read_csv(i[1])
+            df.to_sql(i[0], con=engine, if_exists="replace", index=False)
+            tbs.append(i[0] + "_success")
+            tbs_cnt += 1
+        except Exception:
+            tbs.append(i[0] + "_fail")
+            tbs_cnt -= 1
+            continue
+
+    if src_cnt > tbs_cnt:
+        status = "fail"
+        desc = "Not all tables were created."
+    else:
+        status = "success"
+        desc = "All tables were created."
+
+    end_time = time.time()
+    duration_seconds = round(end_time - start_time)
+    print("[for_sql] Procces ended -\n")
+
+    return {
+        "tbs": tbs,
+        "engine": engine,
+        "start_date": start_date,
+        "status": status,
+        "desc": desc,
+        "duration_seconds": duration_seconds,
+    }
+
+
+def populate_logs():
+    result = for_sql()
+    tbs = result["tbs"]
+    engine = result["engine"]
+    start_date = result["start_date"]
+    status = result["status"]
+    desc = result["desc"]
+    duration_seconds = result["duration_seconds"]
+
+    # Send data to logs table to keep track of Python runs
+    print("- Gathering data for logs")
+    tbs_json = json.dumps(tbs)
+    # if table does not exist, create it
+    logs_create = text(
+        """
+                if object_id(N'dbo.logs', N'U') is null
+                create table logs(
+                    id int IDENTITY(1, 1),
+                    host_name varchar(max),
+                    status varchar(7),
+                    description varchar(max),
+                    tables varchar(max),
+                    duration_seconds decimal(5, 2),
+                    start_date datetime,
+                    end_date datetime)
+            """
+    )
+    insert_statement = text(
+        f"INSERT INTO logs (host_name, status, description, tables, duration_seconds, start_date, end_date) "
+        f"VALUES ('{platform.node()}', '{status}', '{desc}', '{tbs_json}', {duration_seconds}, '{start_date.strftime('%Y-%m-%d %H:%M:%S')}', '{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
+    )
+
+    with engine.connect() as connection:
+        connection.execute(logs_create)
+        connection.execute(insert_statement)
+        connection.commit()
+
+    engine.dispose()
+    print("[populate_logs] Procces ended -\n")
+
 
 def etl():
     # iterating through files in the folder.
@@ -107,15 +226,21 @@ def etl():
         print("ETL function stopped.")
 
 
+def etl2():
+    read_files()
+    for_sql()
+    populate_logs()
+
+
 # - Run right now
-etl()
+etl2()
 
 # - Run daily
-scheduler = BlockingScheduler()
-scheduler.add_job(etl, "cron", hour=5, minute=0)  # 5:00 AM
+# scheduler = BlockingScheduler()
+# scheduler.add_job(etl, "cron", hour=5, minute=0)  # 5:00 AM
 
-try:
-    print("Daily ETL execution started, waiting...\n")
-    scheduler.start()
-except KeyboardInterrupt:
-    print("Daily ETL execution stopped.")
+# try:
+#     print("Daily ETL execution started, waiting...\n")
+#     scheduler.start()
+# except KeyboardInterrupt:
+#     print("Daily ETL execution stopped.")
