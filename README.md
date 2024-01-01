@@ -11,9 +11,9 @@ ABOUT:
 WHAT TO CHANGE IN THE CODE:
 - 1. You need folder path, set the variable "folder_path" 
 - - for Mac/Linux
-  - export folder_path="you whole folder path where are files stored"
+  - export folder_path="you whole folder path where files are stored"
 - - For Windows
-  - set folder_path="you whole folder path where are files stored"
+  - set folder_path="you whole folder path where files stored"
 
 - 2. You need connection string, set the variable "database_url"
 - - For Mac/Linux
