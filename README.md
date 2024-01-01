@@ -13,7 +13,7 @@ WHAT TO CHANGE IN THE CODE:
 - - for Mac/Linux
   - export folder_path="you whole folder path where files are stored"
 - - For Windows
-  - set folder_path="you whole folder path where files stored"
+  - set folder_path="you whole folder path where files are stored"
 
 - 2. You need connection string, set the variable "database_url"
 - - For Mac/Linux
